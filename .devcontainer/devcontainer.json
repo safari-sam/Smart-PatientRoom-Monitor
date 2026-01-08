@@ -1,34 +1,13 @@
 {
-    "name": "Smart Patient Room Monitor",
-    
-    "image": "mcr.microsoft.com/devcontainers/rust:latest",
-    
+    "name": "Smart Patient Monitor",
+    "image": "mcr.microsoft.com/devcontainers/base:jammy",
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-        "ghcr.io/devcontainers/features/node:1": {}
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "dockerDashComposeVersion": "v2"
+        }
     },
-    
     "forwardPorts": [8080, 5432],
-    "portsAttributes": {
-        "8080": {
-            "label": "Web Dashboard",
-            "onAutoForward": "notify"
-        },
-        "5432": {
-            "label": "PostgreSQL",
-            "onAutoForward": "ignore"
-        }
-    },
-    
-    "postCreateCommand": "echo '✅ Environment ready!' && echo '👉 Run: docker-compose up --build' && echo '👉 Then open port 8080 from Ports tab'",
-    
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "rust-lang.rust-analyzer",
-                "ms-azuretools.vscode-docker",
-                "humao.rest-client"
-            ]
-        }
-    }
+    "postStartCommand": "docker --version && docker-compose --version && echo '✅ Ready! Run: docker-compose up --build'",
+    "remoteUser": "vscode"
 }
