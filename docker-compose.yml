@@ -1,0 +1,59 @@
+# ============================================================================
+# Smart Patient Room Monitor - Docker Compose Configuration
+# ============================================================================
+# Usage:
+#   docker-compose up --build     (build and start)
+#   docker-compose down           (stop and remove)
+#   docker-compose logs -f app    (view app logs)
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # --------------------------------------------------------------------------
+  # PostgreSQL Database
+  # --------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: patient-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: patient_monitor
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # Rust Backend + Web Dashboard
+  # --------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: patient-monitor
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/patient_monitor
+      - MOCK_MODE=true
+      - SOUND_THRESHOLD=150
+      - INACTIVITY_SECONDS=300
+      - RUST_LOG=info
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Persistent volume for database
+volumes:
+  postgres_data:

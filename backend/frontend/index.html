@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Patient Room Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Audio Alerts -->
+    <audio id="alertTone" preload="auto">
+        <!-- Professional medical alert tone -->
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
+    
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="36" height="36" rx="8" fill="#3b82f6"/>
+                        <path d="M18 8v6m0 0v6m0-6h6m-6 0h-6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="18" cy="18" r="12" stroke="white" stroke-width="2" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="header-title">
+                    <h1>Smart Patient Monitor</h1>
+                    <span class="header-subtitle">Real-time Room Monitoring System</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-secondary" id="audioToggleBtn" onclick="toggleAudio()">
+                    🔊 Sound On
+                </button>
+                <button class="btn btn-secondary" onclick="openSettingsModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                    </svg>
+                    Settings
+                </button>
+                <button class="btn btn-primary" onclick="openReportModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    Generate Report
+                </button>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner hidden" id="alertBanner">
+            <div class="alert-content">
+                <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span class="alert-message" id="alertMessage">Alert detected!</span>
+            </div>
+            <button class="alert-dismiss" onclick="dismissAlert()">×</button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Cards - Now Interactive -->
+            <div class="stats-grid">
+                <div class="stat-card temperature" onclick="openDetailModal('temperature')">
+                    <div class="stat-header">
+                        <span class="stat-icon">🌡️</span>
+                        <span class="stat-label">Temperature</span>
+                        <button class="stat-chart-btn" title="View Chart">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="tempValue">--</span>
+                        <span class="stat-unit">°C</span>
+                    </div>
+                    <div class="stat-footer">Click for detailed chart</div>
+                </div>
+
+                <div class="stat-card motion" onclick="openDetailModal('motion')">
+                    <div class="stat-header">
+                        <span class="stat-icon">🚶</span>
+                        <span class="stat-label">Motion</span>
+                        <button class="stat-chart-btn" title="View Chart">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="motionValue">--</span>
+                    </div>
+                    <div class="stat-footer" id="motionStatus">Click for activity analysis</div>
+                </div>
+
+                <div class="stat-card sound" onclick="openDetailModal('sound')">
+                    <div class="stat-header">
+                        <span class="stat-icon">🔊</span>
+                        <span class="stat-label">Sound Level</span>
+                        <button class="stat-chart-btn" title="View Chart">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="soundValue">--</span>
+                    </div>
+                    <div class="stat-bar-container">
+                        <div class="stat-bar">
+                            <div class="stat-bar-fill" id="soundBar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card alerts">
+                    <div class="stat-header">
+                        <span class="stat-icon">⚠️</span>
+                        <span class="stat-label">Alerts Today</span>
+                    </div>
+                    <div class="stat-body">
+                        <span class="stat-value" id="alertCount">0</span>
+                    </div>
+                    <div class="stat-breakdown">
+                        <span class="breakdown-item fall">
+                            <span class="breakdown-value" id="fallCount">0</span> falls
+                        </span>
+                        <span class="breakdown-item inactive">
+                            <span class="breakdown-value" id="inactiveCount">0</span> inactive
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="chart-card main-chart">
+                    <div class="chart-header">
+                        <h2>Real-time Sensor Data</h2>
+                        <div class="chart-legend">
+                            <span class="legend-item">
+                                <span class="legend-color temp"></span>
+                                Temperature
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-color sound"></span>
+                                Sound Level
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-body" id="realtimeChart"></div>
+                </div>
+
+                <div class="chart-card motion-chart">
+                    <div class="chart-header">
+                        <h2>Motion Timeline</h2>
+                        <span class="chart-subtitle">Last 60 readings</span>
+                    </div>
+                    <div class="chart-body" id="motionChart"></div>
+                </div>
+            </div>
+
+            <!-- Events Table -->
+            <div class="events-card">
+                <div class="events-header">
+                    <h2>Recent Events</h2>
+                    <button class="refresh-btn" onclick="fetchHistory()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M23 4v6h-6M1 20v-6h6"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+                <div class="events-table-container">
+                    <table class="events-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Temperature</th>
+                                <th>Motion</th>
+                                <th>Sound</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsBody">
+                            <tr>
+                                <td colspan="5" class="loading-cell">Loading data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">
+                <span>Smart Patient Room Monitor</span>
+                <span class="footer-divider">•</span>
+                <span>FHIR Compliant</span>
+            </div>
+            <div class="footer-right">
+                <span id="lastUpdate">Last update: --</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Report Generation Modal -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2>📊 Generate Activity Report</h2>
+                <button class="modal-close" onclick="closeReportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Time Selection -->
+                <div class="report-config">
+                    <div class="config-row">
+                        <div class="config-field">
+                            <label>Date</label>
+                            <input type="date" id="reportDate" />
+                        </div>
+                        <div class="config-field">
+                            <label>Start Time</label>
+                            <input type="time" id="reportStartTime" value="22:00" />
+                        </div>
+                        <div class="config-field">
+                            <label>End Time</label>
+                            <input type="time" id="reportEndTime" value="06:00" />
+                        </div>
+                        <div class="config-field config-field-btn">
+                            <button class="btn btn-primary" onclick="generateReport()">
+                                Generate Report
+                            </button>
+                        </div>
+                    </div>
+                    <div class="config-presets">
+                        <span>Quick presets:</span>
+                        <button class="preset-btn" onclick="setPreset('night')">Night (10PM-6AM)</button>
+                        <button class="preset-btn" onclick="setPreset('morning')">Morning (6AM-12PM)</button>
+                        <button class="preset-btn" onclick="setPreset('afternoon')">Afternoon (12PM-6PM)</button>
+                        <button class="preset-btn" onclick="setPreset('evening')">Evening (6PM-10PM)</button>
+                        <button class="preset-btn" onclick="setPreset('24h')">Full Day (24h)</button>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div class="report-content" id="reportContent">
+                    <div class="report-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        <p>Select a time range and click "Generate Report"</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="reportFooter" style="display: none;">
+                <button class="btn btn-secondary" onclick="closeReportModal()">Close</button>
+                <button class="btn btn-primary" onclick="downloadReport()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sensor Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2 id="detailModalTitle">Sensor Details</h2>
+                <button class="modal-close" onclick="closeDetailModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Time Range Selector -->
+                <div class="detail-time-selector">
+                    <button class="time-btn active" onclick="setDetailRange(15)">15 min</button>
+                    <button class="time-btn" onclick="setDetailRange(30)">30 min</button>
+                    <button class="time-btn" onclick="setDetailRange(60)">1 hour</button>
+                    <button class="time-btn" onclick="setDetailRange(180)">3 hours</button>
+                    <button class="time-btn" onclick="setDetailRange(360)">6 hours</button>
+                </div>
+
+                <!-- Stats Summary -->
+                <div class="detail-stats" id="detailStats">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Detail Chart -->
+                <div class="detail-chart-container">
+                    <div class="detail-chart" id="detailChart"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>⚙️ Monitor Settings</h2>
+                <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Inactivity Threshold -->
+                <div class="settings-section">
+                    <h3>Inactivity Alert Threshold</h3>
+                    <p class="settings-description">
+                        Trigger an alert when no motion is detected for this duration.
+                    </p>
+                    
+                    <div class="threshold-control">
+                        <div class="threshold-display">
+                            <span class="threshold-value" id="thresholdValue">5</span>
+                            <span class="threshold-unit">minutes</span>
+                        </div>
+                        
+                        <input 
+                            type="range" 
+                            id="thresholdSlider" 
+                            min="1" 
+                            max="30" 
+                            value="5" 
+                            class="threshold-slider"
+                            oninput="updateThresholdDisplay(this.value)"
+                        >
+                        
+                        <div class="threshold-labels">
+                            <span>1 min</span>
+                            <span>15 min</span>
+                            <span>30 min</span>
+                        </div>
+                    </div>
+                    
+                    <div class="threshold-presets">
+                        <span>Quick set:</span>
+                        <button class="preset-btn" onclick="setThreshold(1)">1 min</button>
+                        <button class="preset-btn" onclick="setThreshold(2)">2 min</button>
+                        <button class="preset-btn" onclick="setThreshold(5)">5 min</button>
+                        <button class="preset-btn" onclick="setThreshold(10)">10 min</button>
+                        <button class="preset-btn" onclick="setThreshold(15)">15 min</button>
+                        <button class="preset-btn" onclick="setThreshold(30)">30 min</button>
+                    </div>
+                </div>
+                
+                <!-- Sound Threshold -->
+                <div class="settings-section">
+                    <h3>Fall Detection Sound Threshold</h3>
+                    <p class="settings-description">
+                        Sound level that triggers a fall alert when combined with motion.
+                    </p>
+                    
+                    <div class="threshold-control">
+                        <div class="threshold-display">
+                            <span class="threshold-value" id="soundThresholdValue">150</span>
+                            <span class="threshold-unit">level</span>
+                        </div>
+                        
+                        <input 
+                            type="range" 
+                            id="soundThresholdSlider" 
+                            min="50" 
+                            max="400" 
+                            value="150" 
+                            step="10"
+                            class="threshold-slider"
+                            oninput="updateSoundThresholdDisplay(this.value)"
+                        >
+                        
+                        <div class="threshold-labels">
+                            <span>50 (sensitive)</span>
+                            <span>225</span>
+                            <span>400 (less sensitive)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Status -->
+                <div class="settings-status" id="settingsStatus">
+                    <div class="status-icon">✓</div>
+                    <span>Settings synced with server</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

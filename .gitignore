@@ -1,0 +1,38 @@
+# ============================================================================
+# Smart Patient Room Monitor - Git Ignore
+# ============================================================================
+
+# --- Rust ---
+target/
+**/*.rs.bk
+Cargo.lock
+
+# --- Environment ---
+.env
+*.env.local
+
+# --- Database ---
+*.db
+*.sqlite
+postgres_data/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Build artifacts ---
+dist/
+build/
+*.exe
