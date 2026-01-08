@@ -1,15 +1,18 @@
 {
     "name": "Smart Patient Room Monitor",
     
-    "dockerComposeFile": "../docker-compose.yml",
-    "service": "app",
-    "workspaceFolder": "/app",
+    "image": "mcr.microsoft.com/devcontainers/rust:latest",
+    
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/node:1": {}
+    },
     
     "forwardPorts": [8080, 5432],
     "portsAttributes": {
         "8080": {
             "label": "Web Dashboard",
-            "onAutoForward": "openBrowser"
+            "onAutoForward": "notify"
         },
         "5432": {
             "label": "PostgreSQL",
@@ -17,19 +20,15 @@
         }
     },
     
-    "postStartCommand": "echo '✅ Environment ready! The app should start automatically.' && echo '📊 Dashboard: Click the Ports tab and open port 8080'",
+    "postCreateCommand": "echo '✅ Environment ready!' && echo '👉 Run: docker-compose up --build' && echo '👉 Then open port 8080 from Ports tab'",
     
     "customizations": {
         "vscode": {
             "extensions": [
                 "rust-lang.rust-analyzer",
                 "ms-azuretools.vscode-docker",
-                "ckolkman.vscode-postgres",
                 "humao.rest-client"
-            ],
-            "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash"
-            }
+            ]
         }
     }
 }
