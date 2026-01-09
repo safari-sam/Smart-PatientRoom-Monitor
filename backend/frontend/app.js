@@ -4,8 +4,8 @@
  */
 
 const CONFIG = {
-    wsUrl: `ws://${window.location.host}/ws`,
-    apiUrl: `http://${window.location.host}/api`,
+    wsUrl: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`,
+    apiUrl: `${window.location.protocol}//${window.location.host}/api`,
     maxDataPoints: 60,
     reconnectDelay: 3000,
 };

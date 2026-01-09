@@ -1,11 +1,9 @@
 # ============================================================================
 # Smart Patient Room Monitor - Dockerfile
 # ============================================================================
-# Multi-stage build for optimized image size
-# ============================================================================
 
 # Stage 1: Build the Rust application
-FROM rust:slim-bookworm AS builder
+FROM rust:1.83-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -17,20 +15,11 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Cargo files first (for dependency caching)
-COPY backend/Cargo.toml ./
+# Copy the entire backend folder
+COPY backend/ ./
 
-# Create dummy main.rs to build dependencies (cache layer)
-RUN mkdir src && \
-    echo "fn main() { println!(\"Dummy build\"); }" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
-
-# Copy actual source code
-COPY backend/src ./src
-
-# Build the real application (touch to invalidate cache)
-RUN touch src/main.rs && cargo build --release
+# Build the application
+RUN cargo build --release
 
 # ============================================================================
 # Stage 2: Runtime image (smaller)
@@ -43,6 +32,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libssl3 \
     libpq5 \
+    libudev1 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -63,6 +53,7 @@ ENV DB_NAME=patient_monitor
 ENV MOCK_MODE=true
 ENV SOUND_THRESHOLD=150
 ENV INACTIVITY_SECONDS=300
+ENV RUST_LOG=info
 
 # Expose the web server port
 EXPOSE 8080
