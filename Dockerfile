@@ -5,7 +5,7 @@
 # ============================================================================
 
 # Stage 1: Build the Rust application
-FROM rust:1.75-slim-bookworm AS builder
+FROM rust:slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     libpq-dev \
+    libudev-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Cargo files first (for dependency caching)
@@ -46,7 +47,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled binary from builder stage
-COPY --from=builder /app/target/release/smart_patient_monitor .
+COPY --from=builder /app/target/release/monitor .
 
 # Copy frontend files
 COPY backend/frontend ./frontend
@@ -54,7 +55,11 @@ COPY backend/frontend ./frontend
 # Set environment variables (defaults)
 ENV HOST=0.0.0.0
 ENV PORT=8080
-ENV DATABASE_URL=postgres://postgres:postgres@db:5432/patient_monitor
+ENV DB_HOST=db
+ENV DB_PORT=5432
+ENV DB_USER=postgres
+ENV DB_PASSWORD=postgres
+ENV DB_NAME=patient_monitor
 ENV MOCK_MODE=true
 ENV SOUND_THRESHOLD=150
 ENV INACTIVITY_SECONDS=300
@@ -63,4 +68,4 @@ ENV INACTIVITY_SECONDS=300
 EXPOSE 8080
 
 # Run the application
-CMD ["./smart_patient_monitor"]
+CMD ["./monitor"]
