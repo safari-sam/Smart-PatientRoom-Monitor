@@ -40,22 +40,25 @@ The system captures Motion, Sound, and Temperature data, processes it via a high
     * Longitudinal Charts: Visualizes "Rest" vs. "Active" periods over 24h timelines.
     * Audio Alerts: Uses the Web Audio API for distinct, professional warning tones to mitigate alarm fatigue.
 
-## 🛠️ Setup & Installation
+## 🛠️ Setup & Deployment
 
-### Prerequisites
-* Rust (latest stable)
-* PostgreSQL
-* Arduino IDE (for flashing firmware)
+### ☁️ GitHub Codespaces 
+This project is fully containerized and includes a **Mock Mode**, allowing you to test the full software stack (Backend, Database, Frontend) without physical sensor hardware.
 
-### Running the Backend
-1.  Database: Ensure PostgreSQL is running and create a database named `patient_monitor`.
-2.  Configuration: Rename `.env.example` to `.env` and configure your Serial Port (e.g., `COM3` or `/dev/ttyACM0`).
-3.  Run:
+1.  **Launch Codespace:** Click the green **Code** button > **Codespaces** > **Create codespace on main**.
+2.  **Run via Docker:**
+    The repository includes a `docker-compose.yml` that orchestrates the Rust backend and PostgreSQL database.
     ```bash
-    cargo run --release
+    docker-compose up --build
     ```
-    *Use `MOCK_MODE=true` in .env to run without physical hardware.* 
+3.  **Verify Mock Data:**
+    * Since Codespaces cannot access local USB ports, the system automatically detects the environment and switches to `MOCK_MODE`[cite: 69].
+    * You will see simulated sensor data (randomized temperature, motion, and sound spikes) streaming to the dashboard immediately.
+4.  **Access Dashboard:**
+    * Click the "Ports" tab in VS Code.
+    * Open the forwarded address for **Port 8080** (or 8000, depending on your config) to view the live dashboard.
 
+---
 ### Running the Frontend
 Simply serve the `frontend` directory using any static file server or open `index.html` directly (backend must be running).
 
