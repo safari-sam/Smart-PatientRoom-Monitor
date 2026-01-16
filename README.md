@@ -1,217 +1,70 @@
-# 🏥 Smart Patient Room Monitor
+# Smart Patient Room Monitor (IoT + Rust + FHIR)
 
-A real-time patient monitoring system that detects potential falls and patient inactivity using Arduino sensors, with a FHIR-compliant REST API and live web dashboard.
-
-![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
-![FHIR](https://img.shields.io/badge/HL7-FHIR%20R4-red?style=flat)
+A multi-sensor IoT system for longitudinal activity tracking, environmental safety, and clinical decision support in healthcare facilities.
 
 ---
 
-## 🚀 Quick Start
+## 📌 Project Overview
+This project bridges the gap between simple emergency alarms and comprehensive patient monitoring. By leveraging a hybrid IoT architecture, it combines real-time sensor data with clinical logic to support physiotherapy, elderly care, and mental health monitoring.
 
-### Option 1: GitHub Codespaces (Easiest - No Installation Required!)
+The system captures Motion, Sound, and Temperature data, processes it via a high-performance Rust backend, standardizes it into HL7 FHIR R4 resources, and visualizes it on a real-time "Nurse Station" dashboard.
 
-1. Click the green **Code** button above
-2. Select **Codespaces** tab
-3. Click **Create codespace on main**
-4. Wait ~2-3 minutes for the environment to build
-5. Once ready, run in the terminal:
-   ```bash
-   docker-compose up --build
-   ```
-6. Click the **Ports** tab → Click the 🌐 globe icon next to port **8080**
-7. **Dashboard opens in your browser!** 🎉
+### 🏥 Clinical Use Cases
+* Physiotherapy: Validates patient mobility targets via "Average Physical Activity" scores.
+* Elderly Care: Monitors "longest still periods" for pressure ulcer prevention and detects wandering.
+* Patient Safety: Detects potential falls using a multi-factor algorithm (Motion + Peak Audio Amplitude).
+* Mental Health: Tracks circadian rhythm disruptions (e.g., reversed sleep-wake cycles).
 
-### Option 2: Local Docker
+🏗️ Technical Architecture
 
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/smart-patient-monitor.git
-cd smart-patient-monitor
+## 1. Hardware Layer (Perception)
+* Microcontroller: Arduino Uno R3 acting as the sensor hub.
+* Sensors:
+    * PIR Motion: For presence and activity intensity.
+    * Sound (KY-038): Implements interrupt-based 1000Hz sampling to capture transient impact sounds (solving standard polling limitations).
+    * DHT11: For ambient room temperature monitoring.
 
-# Start with Docker Compose
-docker-compose up --build
+### 2. Backend Layer (Rust & Actix)
+* Framework: Built with Rust and Actix-web for memory safety and high concurrency.
+* Concurrency Model: Uses a dedicated background thread for serial ingestion and an actor-based model for WebSocket broadcasting.
+* Data Processing:
+    * Parses raw CSV streams in real-time.
+    * Applies logic for Fall Detection (Simultaneous High Motion + Loud Sound) and Inactivity Alerts.
+* Interoperability: Transforms all data into FHIR R4 Observation resources using LOINC (8310-5, 89020-2) and SNOMED CT (52821000) codes.
+* Storage: PostgreSQL database with connection pooling for persistent history.
 
-# Open http://localhost:8080
-```
+### 3. Frontend Layer (Visualization)
+* Stack: Vanilla JavaScript & D3.js (v7).
+* Features:
+    * Real-time Streaming: Sub-100ms latency via WebSockets.
+    * Longitudinal Charts: Visualizes "Rest" vs. "Active" periods over 24h timelines.
+    * Audio Alerts: Uses the Web Audio API for distinct, professional warning tones to mitigate alarm fatigue.
 
-### Option 3: Local Development
+## 🛠️ Setup & Installation
 
-```bash
-# Prerequisites: Rust 1.70+, PostgreSQL
+### Prerequisites
+* Rust (latest stable)
+* PostgreSQL
+* Arduino IDE (for flashing firmware)
 
-# Start PostgreSQL
-docker run -d --name patient-db \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=patient_monitor \
-  -p 5432:5432 postgres:15-alpine
+### Running the Backend
+1.  Database: Ensure PostgreSQL is running and create a database named `patient_monitor`.
+2.  Configuration: Rename `.env.example` to `.env` and configure your Serial Port (e.g., `COM3` or `/dev/ttyACM0`).
+3.  Run:
+    ```bash
+    cargo run --release
+    ```
+    *Use `MOCK_MODE=true` in .env to run without physical hardware.* 
 
-# Run the backend
-cd backend
-cp ../.env.example .env
-cargo run
-
-# Open http://localhost:8080
-```
-
----
-
-## 📊 Features
-
-| Feature | Description |
-|---------|-------------|
-| **Real-time Monitoring** | Live sensor data via WebSocket |
-| **Fall Detection** | Motion + sound correlation triggers alerts |
-| **Inactivity Alerts** | Configurable timeout warnings |
-| **Activity Reports** | Sleep analysis with D3.js visualizations |
-| **FHIR API** | HL7 FHIR R4 compliant data exchange |
-| **Audio Alerts** | Sound + voice notifications |
-| **Settings UI** | Adjustable thresholds from dashboard |
-| **81 Unit Tests** | Comprehensive test coverage |
+### Running the Frontend
+Simply serve the `frontend` directory using any static file server or open `index.html` directly (backend must be running).
 
 ---
 
-## 🏗 Architecture
-
-```
-┌─────────────────┐      Serial       ┌─────────────────────────┐
-│  Arduino Uno    │ ────────────────► │     Rust Backend        │
-│  ┌───────────┐  │                   │  ┌─────────────────┐    │
-│  │PIR Motion │  │                   │  │ Actix-Web       │    │
-│  │Sound Sensor│ │                   │  │ ├─ REST API     │    │
-│  │DHT11 Temp │  │                   │  │ └─ WebSocket    │    │
-│  └───────────┘  │                   │  └─────────────────┘    │
-└─────────────────┘                   │           │             │
-                                      │  ┌────────▼────────┐    │
-                                      │  │   PostgreSQL    │    │
-                                      │  └─────────────────┘    │
-                                      └───────────┬─────────────┘
-                                                  │
-                                      ┌───────────▼─────────────┐
-                                      │   Web Dashboard (D3.js) │
-                                      │  ├─ Real-time Charts    │
-                                      │  ├─ Alert System        │
-                                      │  └─ Activity Reports    │
-                                      └─────────────────────────┘
-```
+## 🧪 Testing
+* Includes 81 unit tests covering the Serial Parser, FHIR Transformation, and Alert Logic modules[cite: 73].
+* Run tests with: `cargo test`
 
 ---
 
-## 📡 API Endpoints
-
-### REST API (FHIR-Compliant)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/observations` | GET | FHIR Bundle of sensor readings |
-| `/api/observations/latest` | GET | Most recent observation |
-| `/api/observations/{id}` | GET | Specific observation by ID |
-| `/api/summary` | GET | Alert statistics |
-| `/api/activity/sleep` | GET | Sleep analysis report |
-| `/api/settings` | GET/POST | Monitor configuration |
-
-### WebSocket
-
-Connect to `/ws` for real-time sensor data streaming.
-
-### Example FHIR Response
-
-```json
-{
-  "resourceType": "Observation",
-  "id": "observation-123",
-  "status": "final",
-  "code": {
-    "coding": [{
-      "system": "http://loinc.org",
-      "code": "85353-1",
-      "display": "Vital signs panel"
-    }]
-  },
-  "component": [
-    {
-      "code": {"coding": [{"code": "8310-5", "display": "Body temperature"}]},
-      "valueQuantity": {"value": 23.5, "unit": "Cel"}
-    },
-    {
-      "code": {"coding": [{"code": "52821000", "display": "Motion detected"}]},
-      "valueBoolean": true
-    }
-  ]
-}
-```
-
----
-
-## 🧪 Running Tests
-
-```bash
-cd tests
-cargo test
-
-# With verbose output
-cargo test -- --nocapture
-
-# Run specific test module
-cargo test alert
-cargo test fhir
-cargo test api
-```
-
-**Test Coverage:** 81 test cases covering alert logic, FHIR compliance, API responses, activity analysis, and database operations.
-
----
-
-## ⚙️ Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `0.0.0.0` | Server bind address |
-| `PORT` | `8080` | Server port |
-| `DATABASE_URL` | `postgres://...` | PostgreSQL connection |
-| `MOCK_MODE` | `true` | Simulate sensor data |
-| `SOUND_THRESHOLD` | `150` | Fall detection sensitivity |
-| `INACTIVITY_SECONDS` | `300` | Inactivity alert timeout |
-
----
-
-## 📁 Project Structure
-
-```
-smart_patient_monitor/
-├── backend/
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── main.rs          # Entry point
-│   │   ├── api.rs           # REST endpoints
-│   │   ├── db.rs            # Database operations
-│   │   ├── fhir.rs          # FHIR data models
-│   │   ├── serial.rs        # Arduino communication
-│   │   └── websocket.rs     # Real-time streaming
-│   └── frontend/
-│       ├── index.html
-│       ├── styles.css
-│       └── app.js
-├── tests/                    # Unit & integration tests
-├── .devcontainer/            # GitHub Codespaces config
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
----
-
-## 👤 Author
-
-**Sammy**  
-BSc Health Informatics, 3rd Semester  
-Deggendorf Institute of Technology
-
----
-
-## 📄 License
-
-Educational project - Web Application Development, Winter Semester 2024/2025
+Author: Samuel Safari Onyango  
